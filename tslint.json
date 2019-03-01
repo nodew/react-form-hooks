@@ -1,0 +1,12 @@
+{
+    "extends": "tslint-plugin-prettier",
+    "rulesDirectory": ["tslint-plugin-prettier"],
+    "rules": {
+        "prettier": true,
+        "indent": [true, "spaces", 4],
+        "max-line-length": [true, 120]
+    },
+    "linterOptions": {
+        "exclude": ["node_modules"]
+    }
+}
