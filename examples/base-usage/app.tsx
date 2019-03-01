@@ -1,6 +1,6 @@
 import * as React from "react";
 import { render } from "react-dom";
-import { createForm, useForm, useField } from "../../src/Form";
+import { createForm, useForm, useField } from "../../src";
 
 const Demo = () => {
     const { getFieldsValue, resetFields } = useForm();

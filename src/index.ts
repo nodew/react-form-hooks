@@ -1,3 +1,2 @@
-import * as Form from "./Form";
-
-export { Form };
+export * from "./form";
+export * from "./type";
