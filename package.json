@@ -1,7 +1,15 @@
 {
-    "name": "react-form-hooks",
-    "version": "1.0.0",
-    "main": "index.js",
+    "name": "@nodew/react-form-hooks",
+    "version": "0.0.1",
+    "author": {
+        "name": "Joe Wang",
+        "email": "wangqiao11@hotmail.com",
+        "url": "https://wangqiao.me"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/nodew/react-form-hooks"
+    },
     "license": "MIT",
     "scripts": {
         "build": "npm run clean && tsc --project tsconfig.json",
@@ -10,6 +18,11 @@
         "prepublish": "npm run lint && npm run build",
         "demo": "npx parcel ./examples/base-usage/index.html"
     },
+    "main": "./lib/index.js",
+    "files": [
+        "./lib/**/*",
+        "README.md"
+    ],
     "devDependencies": {
         "@types/lodash": "^4.14.121",
         "@types/react": "^16.8.6",
