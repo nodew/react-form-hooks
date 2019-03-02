@@ -1,16 +1,5 @@
 import * as React from "react";
 
-export type IFormContext = {
-    values: {
-        [prop: string]: any;
-    };
-    registerField: IRegisterFieldFn;
-    setFields: (values: { [prop: string]: any }) => void;
-    setField: (name: string, val: any, sync?: boolean) => void;
-    resetFields: (...args: string[]) => void;
-    validateFields: () => [boolean, { [prop: string]: string }];
-};
-
 export type IRegisterFieldFn = (
     name: string,
     setter: React.Dispatch<any>,
