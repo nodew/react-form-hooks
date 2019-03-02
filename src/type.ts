@@ -4,21 +4,25 @@ export type IFormContext = {
     values: {
         [prop: string]: any;
     };
-    options: {
-        [prop: string]: IFieldOption;
-    };
-    setter: {
-        [prop: string]: React.Dispatch<any>;
-    };
-    registerField: (
-        name: string,
-        setter: React.Dispatch<any>,
-        opts: IFieldOption
-    ) => void;
+    registerField: IRegisterFieldFn;
     setFields: (values: { [prop: string]: any }) => void;
-    setField: (name: string, val: any) => void;
+    setField: (name: string, val: any, sync?: boolean) => void;
     resetFields: (...args: string[]) => void;
+    validateFields: () => [boolean, { [prop: string]: string }];
 };
+
+export type IRegisterFieldFn = (
+    name: string,
+    setter: React.Dispatch<any>,
+    opts: IFieldOption,
+    validateFn: IValidateInnerFn,
+    clearValidateErrorFn: () => void
+) => void;
+
+export type IValidateInnerFn = (val?: any) => [boolean, string, string];
+export type IValidateFn = () => [boolean, string, string];
+
+export type IFormOption = {};
 
 export type IRules = {
     required?: boolean;
@@ -28,6 +32,7 @@ export type IRules = {
 export type IFieldOption = {
     initialValue?: any;
     rules?: IRules;
+    validateOnValueChange?: boolean;
     validateErrors?: {
         [prop: string]: string;
     };
@@ -35,11 +40,13 @@ export type IFieldOption = {
 
 export type IFieldProps = {
     value: any;
-    isValid?: boolean;
-    validateError?: {
-        type: "";
-        msg: "";
-    };
+    isPristine: boolean;
+    isValid: boolean;
+    validate: IValidateFn;
+    validateError?: IValidateError;
 };
 
-export type IFormOption = {};
+export type IValidateError = {
+    type: string;
+    message: string;
+};
