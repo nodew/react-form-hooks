@@ -8,7 +8,10 @@ export const validate = (rules: IRules = {}) => (
     value: any
 ): [boolean, string] => {
     if (rules.required && typeof rules.required !== "function") {
-        if (isNil(value) || value.trim() === "") {
+        if (
+            isNil(value) ||
+            (typeof value === "string" && value.trim() === "")
+        ) {
             return [false, "required"];
         }
     }

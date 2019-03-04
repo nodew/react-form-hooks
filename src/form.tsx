@@ -1,86 +1,179 @@
 import * as React from "react";
-import { useState } from "react";
-import get from "lodash/get";
+import { useReducer } from "react";
 import { FormContext } from "./context";
-import {
-    IFieldOption,
-    IFormOption,
-    IRegisterFieldFn,
-    IValidateInnerFn
-} from "./type";
+import { IFormOption, IRegisterFieldFn, IValidateInnerFn } from "./type";
 
-export const createForm = (formOption: IFormOption = {}) => Content => {
-    return props => {
-        const [values, setState] = useState<{
-            [prop: string]: any;
-        }>({});
-        const [options, setOptions] = useState<{
-            [prop: string]: IFieldOption;
-        }>({});
-        const [setters, setSetter] = useState<{
-            [prop: string]: React.Dispatch<any>;
-        }>({});
-        const [validateFns, setValidateFns] = useState<{
-            [prop: string]: IValidateInnerFn;
-        }>({});
-        const [clearValidateErrorFns, setClearValidateErrorFns] = useState<{
-            [prop: string]: () => void;
-        }>({});
+type IFormState = {
+    values: {
+        [prop: string]: any;
+    };
+    initialValues: {
+        [prop: string]: any;
+    };
+    validateFns: {
+        [prop: string]: IValidateInnerFn;
+    };
+};
+
+const initialState: IFormState = {
+    values: {},
+    initialValues: {},
+    validateFns: {}
+};
+
+enum FormAction {
+    ADD_NEW_FIELD,
+    UPDATE_FIELD_VALUE,
+    SET_FIELDS_VALUE,
+    RESET_FIELDS_VALUE
+}
+
+type IAction = {
+    type: FormAction;
+    payload?: any;
+};
+
+const handleAddNewField = (state: IFormState, payload: any) => {
+    const { key, initialValue, validateFn } = payload;
+    const { values, initialValues, validateFns } = state;
+    values[key] = initialValue;
+    initialValues[key] = initialValue;
+    validateFns[key] = validateFn;
+    return {
+        ...state,
+        values: { ...values },
+        initialValues: { ...initialValues },
+        validateFns: { ...validateFns }
+    };
+};
+
+const handleUpdateFieldValue = (state: IFormState, key: string, value: any) => {
+    const { values } = state;
+    values[key] = value;
+    return {
+        ...state,
+        values: { ...values }
+    };
+};
+
+const handleSetFieldsValue = (
+    state: IFormState,
+    fields: { [prop: string]: any } = {}
+) => {
+    const { values } = state;
+    Object.keys(fields).forEach(key => {
+        if (Object.getOwnPropertyDescriptor(values, key)) {
+            values[key] = fields[key];
+        }
+    });
+    return {
+        ...state,
+        values: { ...values }
+    };
+};
+
+const handleResetFieldsValue = (state: IFormState, fields: string[]) => {
+    const { values, initialValues } = state;
+    fields = fields.length === 0 ? Object.keys(values) : fields;
+    fields.forEach(field => {
+        if (Object.getOwnPropertyDescriptor(values, field)) {
+            values[field] = initialValues[field];
+        }
+    });
+    return {
+        ...state,
+        values: { ...values }
+    };
+};
+
+const reducers: React.Reducer<IFormState, IAction> = (
+    state,
+    action
+): IFormState => {
+    const { type, payload } = action;
+    switch (type) {
+        case FormAction.ADD_NEW_FIELD: {
+            return handleAddNewField(state, payload);
+        }
+        case FormAction.UPDATE_FIELD_VALUE: {
+            const { key, value } = payload;
+            return handleUpdateFieldValue(state, key, value);
+        }
+        case FormAction.SET_FIELDS_VALUE: {
+            return handleSetFieldsValue(state, payload);
+        }
+        case FormAction.RESET_FIELDS_VALUE: {
+            return handleResetFieldsValue(state, payload);
+        }
+        default:
+            return state;
+    }
+};
+
+const useFormState = (initialState): [IFormState, React.Dispatch<IAction>] => {
+    const [formState, dispatch] = useReducer(reducers, initialState);
+    return [formState, dispatch];
+};
+
+export const createForm = (formOption: IFormOption = {}) => (
+    Content: React.JSXElementConstructor<any>
+) => {
+    return (props: any) => {
+        const [formState, dispatch] = useFormState(initialState);
         const registerField: IRegisterFieldFn = (
-            name,
-            setterFn,
-            opts = {},
-            validateFn,
-            clearValidateErrorFn
+            field,
+            initialValue,
+            validateFn
         ) => {
-            values[name] = opts.initialValue;
-            setters[name] = setterFn;
-            validateFns[name] = validateFn;
-            options[name] = opts;
-            clearValidateErrorFns[name] = clearValidateErrorFn;
-            setValidateFns(validateFns);
-            setSetter(setters);
-            setOptions(options);
-            setClearValidateErrorFns(clearValidateErrorFns);
-            setState({ ...values });
-        };
-
-        const resetFields = (...fields) => {
-            if (fields.length === 0) {
-                fields = Object.keys(values);
-            }
-            fields.forEach(field => {
-                const initialValue = get(options, [field, "initialValue"]);
-                values[field] = initialValue;
-                setters[field](initialValue);
-                clearValidateErrorFns[field]();
+            dispatch({
+                type: FormAction.ADD_NEW_FIELD,
+                payload: {
+                    key: field,
+                    initialValue,
+                    validateFn
+                }
             });
-            setState({ ...values });
         };
 
-        const setFields = obj => {
-            Object.keys(obj).forEach(key => {
-                const val = obj[key];
-                values[key] = val;
-                setters[key](val);
-                clearValidateErrorFns[key]();
+        const resetFieldsValue = (...fields: string[]) => {
+            dispatch({
+                type: FormAction.RESET_FIELDS_VALUE,
+                payload: fields
             });
-            setState({ ...values });
         };
 
-        const setField = (name: string, val: any, sync?: boolean) => {
-            values[name] = val;
-            clearValidateErrorFns[name]();
-            if (sync) {
-                setters[name](val);
-            }
-            setState({ ...values });
+        const setFieldsValue = (nextFields: object) => {
+            dispatch({
+                type: FormAction.SET_FIELDS_VALUE,
+                payload: nextFields
+            });
         };
 
-        const validateFields = (): [boolean, { [prop: string]: string }] => {
+        const setFieldValue = (name: string, value: any) => {
+            dispatch({
+                type: FormAction.UPDATE_FIELD_VALUE,
+                payload: {
+                    key: name,
+                    value: value
+                }
+            });
+        };
+
+        const validateFields = (
+            ...fields: string[]
+        ): [boolean, { [prop: string]: string }] => {
             let isFormValid = true;
-            const errs = Object.keys(validateFns)
-                .map(key => validateFns[key]())
+            const validateFns = formState.validateFns;
+            fields =
+                fields.length === 0 ? Object.keys(formState.values) : fields;
+            const errs = fields
+                .map(key => {
+                    if (Object.getOwnPropertyDescriptor(validateFns, key)) {
+                        return validateFns[key]();
+                    }
+                    return [];
+                })
+                .filter(ret => ret === undefined || ret.length === 0)
                 .reduce((acc, cur) => {
                     const [isFieldValid, errorType, errorMsg] = cur;
                     if (!isFieldValid) {
@@ -93,15 +186,16 @@ export const createForm = (formOption: IFormOption = {}) => Content => {
         };
 
         const context = {
-            values,
+            values: formState.values,
             registerField,
-            setField,
-            setFields,
-            resetFields,
+            setFieldValue,
+            setFieldsValue,
+            resetFieldsValue,
             validateFields
         };
+
         return (
-            <FormContext.Provider value={{ ...context }}>
+            <FormContext.Provider value={context}>
                 <Content {...props} {...context} />
             </FormContext.Provider>
         );

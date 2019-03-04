@@ -4,9 +4,8 @@ import { createForm, useForm, useField } from "../../src";
 import * as validator from "validator";
 
 const Demo = () => {
-    const { getFieldsValue, resetFields, setField } = useForm();
-    const [firstName, setFirstName] = useField("firstName", {
-        initialValue: "Joe",
+    const { getFieldsValue, resetFieldsValue, setFieldValue } = useForm();
+    const [firstName, setFirstName] = useField("firstName", "Joe", {
         rules: {
             required: true
         },
@@ -14,8 +13,7 @@ const Demo = () => {
             required: "Please type your first name"
         }
     });
-    const [lastName, setLastName] = useField("lastName", {
-        initialValue: "Wang",
+    const [lastName, setLastName] = useField("lastName", "Wang", {
         rules: {
             required: true
         },
@@ -24,11 +22,10 @@ const Demo = () => {
         },
         validateOnValueChange: true
     });
-    const [email, setEmail] = useField("email", {
-        initialValue: "joe@react-form-hooks.dev",
+    const [email, setEmail] = useField("email", "joe@react-form-hooks.dev", {
         rules: {
             required: true,
-            isEmail: val => validator.isEmail(val)
+            isEmail: value => validator.isEmail(value)
         },
         validateErrors: {
             required: "Your email is required",
@@ -77,10 +74,13 @@ const Demo = () => {
                 {!email.isValid && <span>{email.validateError.message}</span>}
             </div>
             <button type="submit">Submit</button>
-            <button type="reset" onClick={() => resetFields()}>
+            <button type="reset" onClick={() => resetFieldsValue()}>
                 Reset
             </button>
-            <button type="button" onClick={() => setField("firstName", "")}>
+            <button
+                type="button"
+                onClick={() => setFieldValue("firstName", "")}
+            >
                 Set firstName to empty
             </button>
         </form>

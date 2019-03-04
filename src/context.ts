@@ -7,17 +7,17 @@ export type IFormContext = {
         [prop: string]: any;
     };
     registerField: IRegisterFieldFn;
-    setFields: (values: { [prop: string]: any }) => void;
-    setField: (name: string, val: any, sync?: boolean) => void;
-    resetFields: (...args: string[]) => void;
+    setFieldsValue: (values: { [prop: string]: any }) => void;
+    setFieldValue: (name: string, val: any, sync?: boolean) => void;
+    resetFieldsValue: (...args: string[]) => void;
     validateFields: () => [boolean, { [prop: string]: string }];
 };
 
 export const FormContext = createContext<IFormContext>({
     values: {},
     registerField: noop,
-    setFields: noop,
-    setField: noop,
-    resetFields: noop,
+    setFieldsValue: noop,
+    setFieldValue: noop,
+    resetFieldsValue: noop,
     validateFields: () => [true, null]
 });

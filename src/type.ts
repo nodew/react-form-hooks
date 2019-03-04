@@ -1,11 +1,7 @@
-import * as React from "react";
-
 export type IRegisterFieldFn = (
     name: string,
-    setter: React.Dispatch<any>,
-    opts: IFieldOption,
-    validateFn: IValidateInnerFn,
-    clearValidateErrorFn: () => void
+    initialValue: any,
+    validateFn: IValidateInnerFn
 ) => void;
 
 export type IValidateInnerFn = (val?: any) => [boolean, string, string];
@@ -19,7 +15,6 @@ export type IRules = {
 };
 
 export type IFieldOption = {
-    initialValue?: any;
     rules?: IRules;
     validateOnValueChange?: boolean;
     validateErrors?: {
