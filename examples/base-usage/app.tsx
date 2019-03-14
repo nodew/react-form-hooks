@@ -33,7 +33,7 @@ const Demo = () => {
         }
     });
 
-    const onSubmit = e => {
+    const onSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         console.log(getFieldsValue());
     };

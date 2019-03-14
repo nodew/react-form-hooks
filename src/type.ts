@@ -1,6 +1,7 @@
 export type IRegisterFieldFn = (
     name: string,
     initialValue: any,
+    setFn: (value: any) => void,
     validateFn: IValidateInnerFn
 ) => void;
 

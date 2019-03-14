@@ -16,7 +16,8 @@
         "lint": "tslint -p . --fix",
         "clean": "rm -rf ./lib",
         "prepublish": "npm run lint && npm run build",
-        "demo": "npx parcel ./examples/base-usage/index.html"
+        "base-usage": "npx parcel ./examples/base-usage/index.html",
+        "multiple-controls": "npx parcel ./examples/multiple-controls/index.html"
     },
     "main": "./lib/index.js",
     "files": [

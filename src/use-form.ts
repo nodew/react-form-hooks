@@ -3,16 +3,16 @@ import { FormContext } from "./context";
 
 export const useForm = () => {
     const {
-        values,
         resetFieldsValue,
         setFieldValue,
         setFieldsValue,
-        validateFields
+        validateFields,
+        getFieldValue,
+        getFieldsValue
     } = useContext(FormContext);
 
-    const getFieldsValue = () => values;
-
     return {
+        getFieldValue,
         getFieldsValue,
         resetFieldsValue,
         setFieldValue,

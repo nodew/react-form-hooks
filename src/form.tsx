@@ -1,6 +1,7 @@
 import * as React from "react";
-import { useReducer } from "react";
-import { FormContext } from "./context";
+import { useReducer, useCallback, useMemo } from "react";
+import pick from "lodash/pick";
+import { FormContext, IFormContext } from "./context";
 import { IFormOption, IRegisterFieldFn, IValidateInnerFn } from "./type";
 
 type IFormState = {
@@ -10,6 +11,9 @@ type IFormState = {
     initialValues: {
         [prop: string]: any;
     };
+    setters: {
+        [prop: string]: (value: any) => void;
+    };
     validateFns: {
         [prop: string]: IValidateInnerFn;
     };
@@ -18,6 +22,7 @@ type IFormState = {
 const initialState: IFormState = {
     values: {},
     initialValues: {},
+    setters: {},
     validateFns: {}
 };
 
@@ -34,25 +39,29 @@ type IAction = {
 };
 
 const handleAddNewField = (state: IFormState, payload: any) => {
-    const { key, initialValue, validateFn } = payload;
-    const { values, initialValues, validateFns } = state;
+    const { key, initialValue, validateFn, setFn } = payload;
+    const { values, initialValues, validateFns, setters } = state;
     values[key] = initialValue;
     initialValues[key] = initialValue;
     validateFns[key] = validateFn;
+    setters[key] = setFn;
+
     return {
         ...state,
-        values: { ...values },
-        initialValues: { ...initialValues },
-        validateFns: { ...validateFns }
+        values,
+        initialValues,
+        validateFns,
+        setters
     };
 };
 
 const handleUpdateFieldValue = (state: IFormState, key: string, value: any) => {
     const { values } = state;
     values[key] = value;
+
     return {
         ...state,
-        values: { ...values }
+        values
     };
 };
 
@@ -60,29 +69,31 @@ const handleSetFieldsValue = (
     state: IFormState,
     fields: { [prop: string]: any } = {}
 ) => {
-    const { values } = state;
+    const { values, setters } = state;
     Object.keys(fields).forEach(key => {
         if (Object.getOwnPropertyDescriptor(values, key)) {
             values[key] = fields[key];
+            setters[key](fields[key]);
         }
     });
     return {
         ...state,
-        values: { ...values }
+        values
     };
 };
 
 const handleResetFieldsValue = (state: IFormState, fields: string[]) => {
-    const { values, initialValues } = state;
+    const { values, initialValues, setters } = state;
     fields = fields.length === 0 ? Object.keys(values) : fields;
     fields.forEach(field => {
         if (Object.getOwnPropertyDescriptor(values, field)) {
             values[field] = initialValues[field];
+            setters[field](initialValues[field]);
         }
     });
     return {
         ...state,
-        values: { ...values }
+        values
     };
 };
 
@@ -110,7 +121,9 @@ const reducers: React.Reducer<IFormState, IAction> = (
     }
 };
 
-const useFormState = (initialState): [IFormState, React.Dispatch<IAction>] => {
+const useFormState = (
+    initialState: IFormState
+): [IFormState, React.Dispatch<IAction>] => {
     const [formState, dispatch] = useReducer(reducers, initialState);
     return [formState, dispatch];
 };
@@ -120,36 +133,38 @@ export const createForm = (formOption: IFormOption = {}) => (
 ) => {
     return (props: any) => {
         const [formState, dispatch] = useFormState(initialState);
-        const registerField: IRegisterFieldFn = (
-            field,
-            initialValue,
-            validateFn
-        ) => {
-            dispatch({
-                type: FormAction.ADD_NEW_FIELD,
-                payload: {
-                    key: field,
-                    initialValue,
-                    validateFn
-                }
-            });
-        };
+        const registerField = useCallback<IRegisterFieldFn>(
+            (field, initialValue, setFn, validateFn) => {
+                dispatch({
+                    type: FormAction.ADD_NEW_FIELD,
+                    payload: {
+                        key: field,
+                        initialValue,
+                        setFn,
+                        validateFn
+                    }
+                });
+            },
+            []
+        );
 
-        const resetFieldsValue = (...fields: string[]) => {
+        const resetFieldsValue = useCallback((...fields: string[]) => {
             dispatch({
                 type: FormAction.RESET_FIELDS_VALUE,
                 payload: fields
             });
-        };
+        }, []);
 
-        const setFieldsValue = (nextFields: object) => {
+        const setFieldsValue = useCallback((nextFields: object) => {
             dispatch({
                 type: FormAction.SET_FIELDS_VALUE,
                 payload: nextFields
             });
-        };
+        }, []);
 
-        const setFieldValue = (name: string, value: any) => {
+        const setFieldValue = useCallback((name: string, value: any) => {
+            const { setters } = formState;
+            setters[name](value);
             dispatch({
                 type: FormAction.UPDATE_FIELD_VALUE,
                 payload: {
@@ -157,11 +172,12 @@ export const createForm = (formOption: IFormOption = {}) => (
                     value: value
                 }
             });
-        };
+        }, []);
 
-        const validateFields = (
-            ...fields: string[]
-        ): [boolean, { [prop: string]: string }] => {
+        const validateFields = useCallback((...fields: string[]): [
+            boolean,
+            { [prop: string]: string }
+        ] => {
             let isFormValid = true;
             const validateFns = formState.validateFns;
             fields =
@@ -183,20 +199,34 @@ export const createForm = (formOption: IFormOption = {}) => (
                     return acc;
                 }, {});
             return [isFormValid, errs];
-        };
+        }, []);
 
-        const context = {
-            values: formState.values,
-            registerField,
-            setFieldValue,
-            setFieldsValue,
-            resetFieldsValue,
-            validateFields
-        };
+        const getFieldValue = useCallback((field: string) => {
+            return formState.values[field];
+        }, []);
+
+        const getFieldsValue = useCallback((...fields: string[]) => {
+            if (fields.length === 0) {
+                return formState.values;
+            }
+            return pick(formState.values, fields);
+        }, []);
+
+        const context = useMemo<IFormContext>(() => {
+            return {
+                registerField,
+                setFieldValue,
+                setFieldsValue,
+                getFieldValue,
+                getFieldsValue,
+                resetFieldsValue,
+                validateFields
+            };
+        }, []);
 
         return (
             <FormContext.Provider value={context}>
-                <Content {...props} {...context} />
+                <Content {...props} form={context} />
             </FormContext.Provider>
         );
     };

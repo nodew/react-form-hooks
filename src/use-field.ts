@@ -1,4 +1,11 @@
-import { useContext, useEffect, useState, useReducer } from "react";
+import {
+    useContext,
+    useEffect,
+    // useState,
+    useMemo,
+    useReducer,
+    useCallback
+} from "react";
 import get from "lodash/get";
 import { FormContext } from "./context";
 import { validate } from "./utils";
@@ -92,24 +99,35 @@ export const useField = (
     initialValue: any,
     options: IFieldOption = {}
 ): [IFieldProps, (value: any) => void] => {
-    const { values, setFieldValue, registerField } = useContext(FormContext);
-    const [firstRender, setFirstRender] = useState(true);
-
+    const { setFieldValue, registerField } = useContext(FormContext);
     const [state, dispatch] = useFieldState({
         ...initialFieldState,
         value: initialValue,
         options
     });
 
-    const clearValidateError = () => {
+    const clearValidateError = useCallback(() => {
         dispatch({
             type: FieldAction.CLEAR_VALIDATE_ERROR
         });
-    };
+    }, []);
 
-    const onChange = (value: any) => {
+    const setValue = useCallback(
+        (value: any) =>
+            dispatch({
+                type: FieldAction.ON_FIELD_CHANGE,
+                payload: value
+            }),
+        []
+    );
+
+    const onChange = useCallback((value: any) => {
+        setValue(value);
         setFieldValue(name, value);
-    };
+        if (options.validateOnValueChange) {
+            triggerValidate(value);
+        }
+    }, []);
 
     const triggerValidate: IValidateInnerFn = (nextVal = state.value) => {
         const [isValidField, errorType] = validate(options.rules)(nextVal);
@@ -131,27 +149,15 @@ export const useField = (
     };
 
     useEffect(() => {
-        registerField(name, initialValue, triggerValidate);
-        setFirstRender(false);
+        registerField(name, initialValue, setValue, triggerValidate);
     }, []);
 
-    useEffect(() => {
-        if (!firstRender) {
-            dispatch({
-                type: FieldAction.ON_FIELD_CHANGE,
-                payload: values[name]
-            });
-        }
-        if (options.validateOnValueChange) {
-            triggerValidate(values[name]);
-        }
-    }, [values[name]]);
-
-    return [
-        {
+    const fieldProps = useMemo(() => {
+        return {
             ...state,
             validate: () => triggerValidate()
-        },
-        onChange
-    ];
+        };
+    }, [state]);
+
+    return [fieldProps, onChange];
 };
